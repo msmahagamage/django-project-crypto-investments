@@ -1,0 +1,31 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Edit Investment #{{ investment.id }}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+<header class="site-header">
+  <h1>Edit Investment #{{ investment.id }}</h1>
+  <nav class="site-actions">
+    <a class="btn" href="{% url 'dashboard:detail' investment.id %}">← Cancel</a>
+  </nav>
+</header>
+
+{% if messages %}
+<div class="flash">
+  {% for message in messages %}
+    <div class="flash-item {{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<form method="post" class="form-card">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn btn-primary" type="submit">Save changes</button>
+</form>
+</body>
+</html>

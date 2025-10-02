@@ -1,0 +1,200 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Investments</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* light card wrapper for charts */
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0 16px; }
+    .chart-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06); padding: 12px; }
+    .chart-card h3 { margin: 0 0 8px; font-size: 16px; }
+    @media (max-width: 900px){ .chart-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<header class="site-header container">
+  <h1>Crypto Investments</h1>
+  <nav class="site-actions">
+    <a class="btn" href="{% url 'dashboard:list' %}">Dashboard</a>
+    <a class="btn btn-primary" href="{% url 'dashboard:create' %}">+ Add Investment</a>
+  </nav>
+</header>
+
+<div class="container">
+
+  {% if messages %}
+  <div class="flash">
+    {% for message in messages %}
+      <div class="flash-item {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if stats %}
+  <section class="stats">
+    <div class="stat">
+      <div class="stat-label">Total records</div>
+      <div class="stat-value">{{ stats.count }}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Total quantity</div>
+      <div class="stat-value">{{ stats.total_quantity|default:"—" }}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Portfolio value (USD)</div>
+      <div class="stat-value">
+        {% if stats.portfolio_value_usd %}
+          ${{ stats.portfolio_value_usd|floatformat:2 }}
+        {% else %} — {% endif %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ===== Charts ===== -->
+  <section class="chart-grid">
+    <div class="chart-card">
+      <h3>Allocation by Value (USD)</h3>
+      <canvas id="portfolioChart" height="140"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Quantity by Coin</h3>
+      <canvas id="quantityChart" height="140"></canvas>
+    </div>
+  </section>
+
+  <div class="table-wrap" tabindex="0">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Coin</th>
+        <th class="num">Quantity</th>
+        <th class="num">Price (USD)</th>
+        <th>24h</th>
+        <th class="num">Value (USD)</th>
+        <th>Timestamp</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for investment in investments %}
+        <tr>
+          <td>{{ investment.id }}</td>
+          <td>{{ investment.coin }}</td>
+          <td class="num">{{ investment.quantity }}</td>
+
+          <!-- Price -->
+          <td class="num">
+            {% if investment.price_usd is not None %}
+              ${{ investment.price_usd|floatformat:2 }}
+            {% else %} — {% endif %}
+          </td>
+
+          <!-- 24h % change -->
+          <td class="{% if investment.change_24h is not None %}{% if investment.change_24h >= 0 %}text-success{% else %}text-danger{% endif %}{% endif %}">
+            {% if investment.change_24h is not None %}
+              {{ investment.change_24h|floatformat:2 }}%
+            {% else %} — {% endif %}
+          </td>
+
+          <!-- Value = quantity * price -->
+          <td class="num">
+            {% if investment.value_usd is not None %}
+              ${{ investment.value_usd|floatformat:2 }}
+            {% else %} — {% endif %}
+          </td>
+
+          <td>{{ investment.timestamp|date:"m/d/y H:i:s" }}</td>
+
+          <td class="actions">
+            <a class="link" href="{% url 'dashboard:detail' investment.id %}">View</a>
+            <a class="link" href="{% url 'dashboard:edit' investment.id %}">Edit</a>
+            <a class="link danger" href="{% url 'dashboard:delete' investment.id %}">Delete</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8">No investments found.</td></tr>
+      {% endfor %}
+    </tbody>
+
+    {% if stats.portfolio_value_usd %}
+    <tfoot>
+      <tr>
+        <th colspan="5" class="right">Total portfolio value</th>
+        <th class="num">${{ stats.portfolio_value_usd|floatformat:2 }}</th>
+        <th colspan="2"></th>
+      </tr>
+    </tfoot>
+    {% endif %}
+  </table>
+</div>
+
+</div>
+
+<!-- Pass data safely -->
+<script id="chart-portfolio-data" type="application/json">{{ chart_portfolio|safe }}</script>
+<script id="chart-quantity-data" type="application/json">{{ chart_quantity|safe }}</script>
+
+<script>
+(function(){
+  // Read JSON blobs
+  const portfolioData = JSON.parse(document.getElementById('chart-portfolio-data').textContent || '{"labels":[],"values":[]}');
+  const quantityData  = JSON.parse(document.getElementById('chart-quantity-data').textContent || '{"labels":[],"values":[]}');
+
+  // Simple palette (Chart.js will also auto-color if omitted)
+  const makeColors = n => Array.from({length:n}, (_,i)=>`hsl(${(i*57)%360} 70% 55%)`);
+  const fmtUSD = v => (v==null ? '—' : '$' + Number(v).toLocaleString(undefined,{maximumFractionDigits:2}));
+
+  // Doughnut: portfolio by USD
+  const ctx1 = document.getElementById('portfolioChart');
+  if (ctx1 && portfolioData.labels.length){
+    new Chart(ctx1, {
+      type: 'doughnut',
+      data: {
+        labels: portfolioData.labels,
+        datasets: [{
+          data: portfolioData.values,
+          backgroundColor: makeColors(portfolioData.values.length),
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${fmtUSD(ctx.parsed)}` } }
+        },
+        cutout: '58%'
+      }
+    });
+  }
+
+  // Bar: quantities by coin
+  const ctx2 = document.getElementById('quantityChart');
+  if (ctx2 && quantityData.labels.length){
+    new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: quantityData.labels,
+        datasets: [{
+          label: 'Quantity',
+          data: quantityData.values,
+          backgroundColor: makeColors(quantityData.values.length)
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 } }
+        }
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

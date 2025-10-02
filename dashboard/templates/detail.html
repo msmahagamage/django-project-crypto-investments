@@ -1,0 +1,30 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Investment #{{ investment.id }}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+<header class="site-header">
+  <h1>Investment #{{ investment.id }}</h1>
+  <nav class="site-actions">
+    <a class="btn" href="{% url 'dashboard:list' %}">← Back</a>
+    <a class="btn" href="{% url 'dashboard:edit' investment.id %}">Edit</a>
+    <a class="btn danger" href="{% url 'dashboard:delete' investment.id %}">Delete</a>
+  </nav>
+</header>
+
+<div class="table-wrap">
+  <table>
+    <tbody>
+      <tr><th>ID</th><td>{{ investment.id }}</td></tr>
+      <tr><th>Coin</th><td>{{ investment.coin }}</td></tr>
+      <tr><th>Quantity</th><td>{{ investment.quantity }}</td></tr>
+      <tr><th>Timestamp</th><td>{{ investment.timestamp|date:"m/d/y H:i:s" }}</td></tr>
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

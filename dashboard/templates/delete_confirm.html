@@ -1,0 +1,24 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Delete Investment #{{ investment.id }}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+<header class="site-header">
+  <h1>Delete Investment #{{ investment.id }}</h1>
+  <nav class="site-actions">
+    <a class="btn" href="{% url 'dashboard:detail' investment.id %}">← Cancel</a>
+  </nav>
+</header>
+
+<p>Are you sure you want to delete <strong>{{ investment.coin }}</strong> (qty {{ investment.quantity }})?</p>
+
+<form method="post">
+  {% csrf_token %}
+  <button class="btn danger" type="submit">Yes, delete</button>
+</form>
+</body>
+</html>
