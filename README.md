@@ -2,6 +2,8 @@
 # Django Crypto Investments Dashboard
 A simple Django app to track crypto holdings with live USD prices, totals, and charts — built with **Django**.
 
+## Preview
+![Dashboard](/dashboard.png)
 > **Live (Codespaces Preview):**  
 > https://ubiquitous-tribble-v6759qjvxx46hxqv4-8000.app.github.dev/dashboard/  
 > ⚠️ Codespaces URLs change when the workspace restarts. If the link breaks, restart the server and set port 8000 to **Public** (see below).
